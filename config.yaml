@@ -1,0 +1,6 @@
+gpu:
+  enabled: true
+  backend: cuda
+  mode: generic
+standardizer:
+  profile: canon-stereo-keeplargest

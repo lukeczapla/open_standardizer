@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StandardizerConfiguration Version="0.1">
+  <Actions>
+    <RemoveFragment Method="keepLargest"/>
+    <RemoveAttachedData/>
+    <ClearAtomValues/>
+    <RemoveExplicitH/>
+
+    <!-- KEEP ISOTOPES -->
+
+    <Neutralize/>
+    <Mesomerize/>
+    <Tautomerize/>
+    <Aromatize Type="general"/>
+    <CleanGeometry dimension="2D"/>
+  </Actions>
+</StandardizerConfiguration>

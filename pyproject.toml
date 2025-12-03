@@ -1,0 +1,47 @@
+[build-system]
+requires = [
+  "scikit-build-core>=0.9",
+  "setuptools>=68",
+  "wheel",
+  "cmake>=3.24",
+  "ninja",
+  "pybind11>=2.10",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "open-standardizer"
+version = "0.1.0"
+description = "ChemAxon-style molecular standardization using MolVS/RDKit + optional CUDA acceleration."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Open source license" }
+
+authors = [
+  { name = "Luke Czapla", email = "czaplaluke@gmail.com" }
+]
+
+# If you’re installing RDKit from PyPI:
+dependencies = [
+  "rdkit",          # or pin a version here if you want
+]
+
+[project.optional-dependencies]
+gpu = [
+  # Python-side GPU dependencies (if any) go here.
+  # CUDA toolkit / driver is assumed to be installed on the system.
+]
+
+[project.urls]
+homepage = "https://internal.example.com/molvs-standardizer"
+repository = "https://internal.example.com/scm/molvs-standardizer.git"
+
+[tool.scikit-build]
+build-dir = "build"
+minimum-version = "3.24"
+
+[tool.scikit-build.cmake]
+build-type = "Release"
+
+[tool.scikit-build.wheel]
+expand-macos-universal-tags = true

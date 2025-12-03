@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenStandardizer version="1.0">
+  <Actions>
+
+    <ClearStereo 
+      id="clear_stereo"
+      chirality="true"
+      doubleBond="true"
+      wedgedBonds="true"
+    />
+
+    <RemoveFragments
+      id="keep_largest"
+      method="keepLargest"
+      measure="heavyAtomCount"
+    />
+
+    <RemoveExplicitH
+      id="remove_explicit_h"
+      isotopic="false"
+      charged="false"
+      wedged="false"
+      polymerEnd="false"
+      sgroup="false"
+    />
+
+    <ClearIsotopes id="clear_isotopes"/>
+
+    <Neutralize id="neutralize"/>
+
+    <Mesomerize 
+      id="mesomerize"
+      preserveCharge="true"
+    />
+
+    <Tautomerize 
+      id="tautomerize"
+      mode="canonical"
+    />
+
+    <Aromatize 
+      id="aromatize"
+      type="general"
+    />
+
+  </Actions>
+</OpenStandardizer>
+

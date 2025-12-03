@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StandardizerConfiguration Version="0.1">
+  <Actions>
+    <!-- Legacy salt removal -->
+    <RemoveFragment Method="removeSalts"/>
+
+    <!-- Legacy canonical mode clears stereo first -->
+    <ClearStereo Type="Chirality,DoubleBond,SingleUpOrDownBond"/>
+
+    <RemoveAttachedData/>
+    <ClearAtomValues/>
+    <RemoveExplicitH/>
+    <ClearIsotopes/>
+
+    <Neutralize/>
+    <Aromatize Type="general"/>
+    <Mesomerize/>
+    <Tautomerize/>
+
+    <CleanGeometry dimension="2D"/>
+  </Actions>
+</StandardizerConfiguration>

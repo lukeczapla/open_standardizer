@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenStandardizer version="1.0">
+
+    <!-- Ordered list of actions -->
+    <Actions>
+
+        <!-- Clear stereochemistry -->
+        <ClearStereo 
+            id="string"
+            chirality="true|false"
+            doubleBond="true|false"
+            wedgedBonds="true|false"
+        />
+
+        <!-- Fragment removal -->
+        <RemoveFragments
+            id="string"
+            method="keepLargest|removeSpecific"
+            measure="atomCount|heavyAtomCount|mw"
+            smarts="optional SMARTS"
+        />
+
+        <!-- Remove explicit hydrogens -->
+        <RemoveExplicitH
+            id="string"
+            isotopic="true|false"
+            charged="true|false"
+            wedged="true|false"
+            polymerEnd="true|false"
+            sgroup="true|false"
+        />
+
+        <!-- Clear atom isotopes -->
+        <ClearIsotopes id="string"/>
+
+        <!-- Neutralize functional groups -->
+        <Neutralize id="string"/>
+
+        <!-- Mesomerize / resonance normalization -->
+        <Mesomerize 
+            id="string"
+            preserveCharge="true|false"
+        />
+
+        <!-- Tautomer canonicalization -->
+        <Tautomerize 
+            id="string"
+            mode="canonical|enumerate" 
+        />
+
+        <!-- Aromatization -->
+        <Aromatize 
+            id="string"
+            type="general|basic|fused|daylight"
+        />
+
+        <ClearAtomValues id="clear_atom_values" />
+
+        <RemoveAttachedData id="remove_attached_data"/>
+
+        <RemoveSgroups id="clear_sgroups"/>
+
+        <RemoveAtomMapping id="clear_mapping"/>
+
+        <CleanGeometry 
+          id="clean_geometry"
+          dimension="2D|3D"
+          force="true|false"
+        />
+
+        <ClearCharges id="clear_charges"/>
+
+    </Actions>
+</OpenStandardizer>
+

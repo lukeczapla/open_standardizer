@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StandardizerConfiguration Version="0.1">
+  <Actions>
+
+    <!-- Remove junk fragments -->
+    <RemoveFragment Method="keepLargest"/>
+
+    <!-- Remove explicit hydrogens, attached data etc. -->
+    <RemoveAttachedData/>
+    <ClearAtomValues/>
+    <RemoveExplicitH/>
+
+    <!-- Normal chem cleanup -->
+    <ClearIsotopes/>
+    <Neutralize/>
+    <Aromatize Type="general"/>
+
+    <!-- These correspond to “validate & fix” -->
+    <Mesomerize/>
+    <Tautomerize/>
+    <CleanGeometry dimension="2D"/>
+
+  </Actions>
+</StandardizerConfiguration>

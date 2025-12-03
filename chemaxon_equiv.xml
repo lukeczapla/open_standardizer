@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<StandardizerConfiguration>
+  <Actions>
+    <ClearStereo/>
+    <RemoveFragment Method="keepLargest"/>
+    <ClearIsotopes/>
+    <Neutralize/>
+    <Tautomerize/>
+    <Aromatize/>
+  </Actions>
+</StandardizerConfiguration>

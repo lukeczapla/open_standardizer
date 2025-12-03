@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RDKitStandardizer>
+  <ClearStereo>true</ClearStereo>
+  <KeepLargestFragment>true</KeepLargestFragment>
+  <RemoveExplicitHydrogens>true</RemoveExplicitHydrogens>
+  <ClearIsotopes>true</ClearIsotopes>
+  <Neutralize>true</Neutralize>
+  <Tautomerize>true</Tautomerize>
+  <Aromatize>true</Aromatize>
+</RDKitStandardizer>

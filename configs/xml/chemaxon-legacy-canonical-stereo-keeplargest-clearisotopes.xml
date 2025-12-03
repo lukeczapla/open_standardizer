@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StandardizerConfiguration Version="0.1">
+  <Actions>
+    <RemoveFragment Method="keepLargest"/>
+
+    <!-- stereo-clearing required per 'stereo' mode -->
+    <ClearStereo Type="Chirality,DoubleBond,SingleUpOrDownBond"/>
+
+    <RemoveAttachedData/>
+    <ClearAtomValues/>
+    <RemoveExplicitH/>
+
+    <!-- Explicit isotope clear -->
+    <ClearIsotopes/>
+
+    <Neutralize/>
+    <Aromatize Type="general"/>
+    <Mesomerize/>
+    <Tautomerize/>
+
+    <CleanGeometry dimension="2D"/>
+  </Actions>
+</StandardizerConfiguration>
