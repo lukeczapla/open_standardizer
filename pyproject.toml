@@ -38,7 +38,7 @@ repository = "https://internal.example.com/scm/molvs-standardizer.git"
 
 [tool.scikit-build]
 build-dir = "build"
-minimum-version = "3.24"
+minimum-version = "0.9"
 
 [tool.scikit-build.cmake]
 build-type = "Release"

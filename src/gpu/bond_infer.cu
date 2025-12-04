@@ -2,7 +2,8 @@
 #include <device_launch_parameters.h>
 #include <stdint.h>
 
-#include "bond_structs.hpp"
+#include "gpu_structs.hpp"
+#include "gpu_kernels.hpp"
 
 // ======================================================
 // DEVICE-LEVEL HELPERS (ChemAxon-like bond normalization)

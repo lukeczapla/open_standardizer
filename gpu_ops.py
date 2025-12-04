@@ -1,14 +1,32 @@
 # molvs_standardizer/gpu_ops.py
 
-from typing import Callable, List
+from typing import Callable, List, Dict
 from .gpu_cpu_policy_manager import Policy
 from .gpu_cpu_policy_manager import try_gpu_standardize  # if you have this helper
-from .gpu.standardize_gpu import gpu_standardize
+from .gpu.standardize_gpu_old import gpu_standardize
 
-# If you already created the global manager in __init__.py:
-# from . import GPU_CPU_MANAGER
-# Otherwise you can create/use one here:
-# GPU_CPU_MANAGER: Policy = Policy(...)
+GPU_OPS: Dict[str, Callable[[str, List[str]], str]] = {}
+
+def _single_step(step_name: str):
+    def _fn(smiles: str, pipeline: List[str]) -> str:
+        # We ignore `pipeline` here and just run the requested step.
+        # The step_name should match the ones registered in standardize_gpu.
+        return gpu_standardize(smiles, steps=[step_name])
+    return _fn
+
+GPU_OPS.update(
+    {
+        "clear_isotopes":         _single_step("clear_isotopes"),   # if you register it
+        "clear_stereo":           _single_step("stereo"),
+        "remove_largest_fragment": _single_step("keep_largest_fragment"),
+        "remove_fragment_keeplargest": _single_step("keep_largest_fragment"),
+        "remove_explicit_h":      _single_step("remove_explicit_h"),
+        "aromatize":              _single_step("aromaticity"),
+        "mesomerize":             _single_step("mesomerize"),
+        "tautomerize":            _single_step("tautomerize"),
+        # plus any other ops you want GPU-backed
+    }
+)
 
 
 def _make_single_step_gpu(step_name: str) -> Callable[[str, List[str]], str]:
@@ -47,6 +65,8 @@ def register_gpu_ops(policy: Policy) -> None:
 
         # Mesomerize / resonance normalization
         "mesomerize": _make_single_step_gpu("mesomerizer"),
+
+        "tautomerize": _make_single_step_gpu("tautomerizer"),
     })
 
     # Optionally: mark which ops are GPU-friendly / CPU-only
@@ -57,11 +77,10 @@ def register_gpu_ops(policy: Policy) -> None:
             "mesomerize",
             "charge_normalize",
             "bond_order_infer",
+            "tautomerize"
         })
 
     if hasattr(policy, "cpu_only_ops"):
         policy.cpu_only_ops.update({
             # If there are ops you explicitly never want on GPU:
-            # "neutralize",
-            # "tautomerize",
         })

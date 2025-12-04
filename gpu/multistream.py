@@ -1,7 +1,7 @@
 import pycuda.driver as cuda
 import pycuda.autoinit  # ensures context
 from pycuda.compiler import SourceModule
-from rdkit import Chem
+#from rdkit import Chem
 
 NUM_STREAMS = 16
 
@@ -19,6 +19,7 @@ class MultiStreamExecutor:
             "charge": cuda_module.get_function("kernel_charge"),
             "bond_order": cuda_module.get_function("kernel_bond_order"),
             "mesomerizer": cuda_module.get_function("kernel_mesomerizer"),
+            "tautomerizer": cuda_module.get_function("kernel_mesomerizer")
         }
 
     def launch_op(self, op_name, gpu_data_ptrs):

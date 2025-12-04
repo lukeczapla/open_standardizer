@@ -2,7 +2,8 @@
 #include <device_launch_parameters.h>
 #include <stdint.h>
 
-#include "mesomerizer_structs.hpp"
+#include "gpu_structs.hpp"
+#include "gpu_kernels.hpp"
 
 // =====================================================
 // FAST DEVICE HELPERS

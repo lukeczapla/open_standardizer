@@ -124,7 +124,7 @@ def standardize_smiles(smiles: str, configuration_name: str) -> str:
 
     if use_gpu:
         try:
-            from .gpu.standardize_gpu import gpu_standardize
+            from .gpu.standardize_gpu_old import gpu_standardize
             return gpu_standardize(smiles)
         except Exception:
             pass

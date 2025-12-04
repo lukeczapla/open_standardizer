@@ -1,5 +1,4 @@
 #include "gpu_kernels.hpp"
-#include "stereo_kernels.hpp"
 
 #include <cuda_runtime.h>
 #include <RDGeneral/Exceptions.h>

@@ -2,7 +2,8 @@
 #include <device_launch_parameters.h>
 #include <stdint.h>
 
-#include "charge_kernels.hpp"
+#include "gpu_structs.hpp"
+#include "gpu_kernels.hpp"
 
 // ======================================================
 // ATOM STRUCT FOR CHARGE NORMALIZATION

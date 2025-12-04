@@ -1,171 +1,214 @@
-# rdkit_standardizer/gpu/standardize_gpu.py
-
 """
-GPU-accelerated standardization dispatcher.
+GPU-accelerated per-op standardization wrappers for open-standardizer.
 
-This module connects Python to the CUDA kernels exposed by the
-pybind11 module `rdkit_standardizer_gpu`:
+Each function here has the signature:
 
-    gpu_stereo(smiles)       -> smiles
-    gpu_charge(smiles)       -> smiles
-    gpu_bond_order(smiles)   -> smiles
-    gpu_aromaticity(smiles)  -> smiles
-    gpu_mesomerizer(smiles)  -> smiles
-    gpu_final_clean(smiles)  -> smiles
+    gpu_<op_name>(smiles: str, pipeline: List[str]) -> str
 
-Internal API here is Mol-based, so we:
-    Mol -> SMILES -> C++/CUDA -> SMILES -> Mol
+Under the hood they delegate to `_gpu_driver`, which talks to the
+compiled pybind11+CUDA module `standardize_gpu` (built from src/gpu).
+
+C++/CUDA exports in `standardize_gpu`:
+
+    gpu_stereo(smiles)               -> smiles
+    gpu_charge(smiles)               -> smiles
+    gpu_bond_order(smiles)           -> smiles
+    gpu_aromaticity(smiles)          -> smiles
+    gpu_mesomerizer(smiles)          -> smiles
+    gpu_tautomerize(smiles)          -> smiles
+    gpu_final_clean(smiles)          -> smiles
+    gpu_clear_isotopes(smiles)       -> smiles
+    gpu_clear_stereo_core(smiles)    -> smiles
+    gpu_keep_largest_fragment(smiles)-> smiles
+    gpu_remove_explicit_h(smiles)    -> smiles
+
+The wrappers here:
+
+  - Accept and return SMILES strings.
+  - Accept a `pipeline` parameter to match the Policy signature
+    (currently unused by the CUDA functions but preserved for future
+     multi-step kernels).
+  - Propagate GPUNotAvailable / GPUStepFailed so the Policy layer
+    can decide when to fall back to CPU.
 """
 
-from typing import Callable, Dict, Iterable, List, Optional
-from rdkit import Chem
+from __future__ import annotations
 
-# Try to import the compiled CUDA extension.
-# If missing, we degrade to pure RDKit behavior (kernels become no-ops).
-try:
-    import rdkit_standardizer_gpu as _gpu
-except ImportError:
-    _gpu = None
+from typing import List
 
-# Map logical step name -> function(mol) -> mol
-GPU_MODULES: Dict[str, Callable[[Chem.Mol], Chem.Mol]] = {}
-
-
-def register_gpu_kernel(name: str, fn: Callable[[Chem.Mol], Chem.Mol]) -> None:
-    """
-    Register a Mol -> Mol GPU kernel under a logical step name.
-    Example: register_gpu_kernel("aromaticity", _aromaticity_kernel)
-    """
-    GPU_MODULES[name] = fn
+from ..gpu_exceptions import GPUNotAvailable, GPUStepFailed
+from ._gpu_driver import (
+    gpu_stereo_run,
+    gpu_charge_run,
+    gpu_bond_order_run,
+    gpu_aromatize_run,
+    gpu_mesomerize_run,
+    gpu_final_clean_run,
+    gpu_clear_isotopes_run,
+    gpu_clear_stereo_run,
+    gpu_keep_largest_fragment_run,
+    gpu_remove_explicit_h_run,
+    gpu_tautomerize_run,
+)
 
 
 # -------------------------------------------------------------------------
-# Helpers: Mol <-> SMILES wrappers for the C++/CUDA functions
+# Core stereo / charge / bond-order / aromaticity pipeline pieces
 # -------------------------------------------------------------------------
 
-def _mol_to_smiles(mol: Chem.Mol) -> str:
-    # Non-canonical here; final canonicalization happens at the end.
-    return Chem.MolToSmiles(mol, canonical=False)
-
-
-def _smiles_to_mol(smi: str) -> Optional[Chem.Mol]:
-    return Chem.MolFromSmiles(smi)
-
-
-def _wrap_gpu_fn(fn_name: str):
+def gpu_stereo(smiles: str, pipeline: List[str]) -> str:
     """
-    Given the name of a C++ function (e.g. 'gpu_stereo'), return a
-    Mol->Mol wrapper that:
-        Mol -> SMILES -> _gpu.fn(SMILES) -> SMILES -> Mol
+    GPU-backed 'stereo' operation.
 
-    If the extension or function is missing, this becomes identity.
+    Runs the stereo-normalization kernel (e.g. CIP flag assignment /
+    cleanup) on the GPU.
     """
-    if _gpu is None or not hasattr(_gpu, fn_name):
-        # No GPU available: identity transform
-        def _identity(m: Chem.Mol) -> Chem.Mol:
-            return m
-        return _identity
-
-    gpu_fn = getattr(_gpu, fn_name)
-
-    def _wrapped(mol: Chem.Mol) -> Chem.Mol:
-        if mol is None:
-            return None
-        smi = _mol_to_smiles(mol)
-        out_smi = gpu_fn(smi)  # call into pybind11 / CUDA
-        out_mol = _smiles_to_mol(out_smi)
-        # If GPU returned nonsense, fall back to original mol
-        return out_mol if out_mol is not None else mol
-
-    return _wrapped
+    try:
+        return gpu_stereo_run(smiles, pipeline)
+    except (GPUNotAvailable, GPUStepFailed):
+        raise
 
 
-# -------------------------------------------------------------------------
-# Concrete kernels wired to C++ exports
-# -------------------------------------------------------------------------
-
-# stereo.cu
-_stereo_kernel       = _wrap_gpu_fn("gpu_stereo")
-# charge_normalize.cu
-_charge_kernel       = _wrap_gpu_fn("gpu_charge")
-# bond_infer.cu
-_bond_order_kernel   = _wrap_gpu_fn("gpu_bond_order")
-# aromaticity / core_ops.cu
-_aromaticity_kernel  = _wrap_gpu_fn("gpu_aromaticity")
-# mesomerizer.cu (the one you pasted)
-_mesomerizer_kernel  = _wrap_gpu_fn("gpu_mesomerizer")
-# optional final cleanup
-_final_clean_kernel  = _wrap_gpu_fn("gpu_final_clean")
-
-
-def _register_default_kernels() -> None:
+def gpu_charge(smiles: str, pipeline: List[str]) -> str:
     """
-    Register the CUDA-backed kernels under logical step names.
-
-    These step names must match what your gpu_ops / Policy expect.
+    GPU-backed 'charge' (charge-normalization) operation.
     """
-    register_gpu_kernel("stereo",       _stereo_kernel)
-    register_gpu_kernel("charge",       _charge_kernel)
-    register_gpu_kernel("bond_order",   _bond_order_kernel)
-    register_gpu_kernel("aromaticity",  _aromaticity_kernel)
-    register_gpu_kernel("mesomerizer",  _mesomerizer_kernel)
-    register_gpu_kernel("final_clean",  _final_clean_kernel)
+    try:
+        return gpu_charge_run(smiles, pipeline)
+    except (GPUNotAvailable, GPUStepFailed):
+        raise
 
 
-_register_default_kernels()
+def gpu_bond_order(smiles: str, pipeline: List[str]) -> str:
+    """
+    GPU-backed 'bond_order' inference / normalization operation.
+    """
+    try:
+        return gpu_bond_order_run(smiles, pipeline)
+    except (GPUNotAvailable, GPUStepFailed):
+        raise
+
+
+def gpu_aromatize(smiles: str, pipeline: List[str]) -> str:
+    """
+    GPU-backed 'aromatize' operation.
+
+    Wraps `standardize_gpu.gpu_aromaticity`, which runs your GPU
+    aromaticity pass and returns a SMILES.
+    """
+    try:
+        return gpu_aromatize_run(smiles, pipeline)
+    except (GPUNotAvailable, GPUStepFailed):
+        raise
+
+
+def gpu_mesomerize(smiles: str, pipeline: List[str]) -> str:
+    """
+    GPU-backed 'mesomerize' operation.
+
+    Wraps the mesomerization / resonance canonicalization kernel
+    (`standardize_gpu.gpu_mesomerizer`).
+    """
+    try:
+        return gpu_mesomerize_run(smiles, pipeline)
+    except (GPUNotAvailable, GPUStepFailed):
+        raise
+
+
+def gpu_tautomerize(smiles: str, pipeline: List[str]) -> str:
+    """
+    GPU-backed 'tautomerize' operation.
+
+    This calls the CUDA-backed tautomerization kernel exposed as
+    `standardize_gpu.gpu_tautomerize`, then returns a SMILES string
+    after tautomer normalization.
+    """
+    try:
+        return gpu_tautomerize_run(smiles, pipeline)
+    except (GPUNotAvailable, GPUStepFailed):
+        raise
+
+
+def gpu_final_clean(smiles: str, pipeline: List[str]) -> str:
+    """
+    GPU-backed 'final_clean' operation.
+
+    Typically used as the last step of the GPU pipeline to do any
+    final cleanup / normalization after the main passes.
+    """
+    try:
+        return gpu_final_clean_run(smiles, pipeline)
+    except (GPUNotAvailable, GPUStepFailed):
+        raise
 
 
 # -------------------------------------------------------------------------
-# Pipeline runner and public function
+# Fragment / H / isotope helpers
 # -------------------------------------------------------------------------
 
-DEFAULT_PIPELINE: List[str] = [
-    "stereo",
-    "charge",
-    "bond_order",
-    "aromaticity",
-    "mesomerizer",
-    "final_clean",
+def gpu_clear_isotopes(smiles: str, pipeline: List[str]) -> str:
+    """
+    GPU-backed 'clear_isotopes' operation.
+
+    Semantics should match the CPU op_clear_isotopes, but executed via
+    the CUDA kernel exported from `standardize_gpu.gpu_clear_isotopes`.
+    """
+    try:
+        return gpu_clear_isotopes_run(smiles, pipeline)
+    except (GPUNotAvailable, GPUStepFailed):
+        raise
+
+
+def gpu_clear_stereo(smiles: str, pipeline: List[str]) -> str:
+    """
+    GPU-backed 'clear_stereo' operation.
+
+    This ultimately calls `standardize_gpu.gpu_clear_stereo_core`,
+    which should clear stereochemistry consistently with the CPU path.
+    """
+    try:
+        return gpu_clear_stereo_run(smiles, pipeline)
+    except (GPUNotAvailable, GPUStepFailed):
+        raise
+
+
+def gpu_keep_largest_fragment(smiles: str, pipeline: List[str]) -> str:
+    """
+    GPU-backed 'remove_largest_fragment' / 'keep_largest_fragment' operation.
+
+    Used for ChemAxon-style "keep largest fragment" salt stripping.
+    """
+    try:
+        return gpu_keep_largest_fragment_run(smiles, pipeline)
+    except (GPUNotAvailable, GPUStepFailed):
+        raise
+
+
+def gpu_remove_explicit_h(smiles: str, pipeline: List[str]) -> str:
+    """
+    GPU-backed 'remove_explicit_h' operation.
+
+    Should mirror the semantics of the CPU op_remove_explicit_h (RDKit
+    RemoveHs), but performed via the CUDA kernel.
+    """
+    try:
+        return gpu_remove_explicit_h_run(smiles, pipeline)
+    except (GPUNotAvailable, GPUStepFailed):
+        raise
+
+
+__all__ = [
+    # core pipeline pieces
+    "gpu_stereo",
+    "gpu_charge",
+    "gpu_bond_order",
+    "gpu_aromatize",
+    "gpu_mesomerize",
+    "gpu_tautomerize",
+    "gpu_final_clean",
+    # helpers
+    "gpu_clear_isotopes",
+    "gpu_clear_stereo",
+    "gpu_keep_largest_fragment",
+    "gpu_remove_explicit_h",
 ]
-
-
-def _run_pipeline(
-    mol: Chem.Mol,
-    steps: Optional[Iterable[str]] = None,
-) -> Chem.Mol:
-    if mol is None:
-        return None
-
-    pipeline = list(steps) if steps is not None else DEFAULT_PIPELINE
-
-    for step in pipeline:
-        kernel = GPU_MODULES.get(step)
-        if kernel is None:
-            continue
-        try:
-            mol = kernel(mol)
-        except Exception as e:
-            # Soft-fail: keep going but mark the problem
-            print(f"[GPU WARNING] kernel '{step}' failed → skipping: {e}")
-    return mol
-
-
-def gpu_standardize(smiles: str, steps: Optional[Iterable[str]] = None) -> str:
-    """
-    GPU standardizer entry point.
-
-    - steps is None  → run the full canonicalization pipeline
-    - steps is ['stereo'] → run only that step (used by per-op policy).
-
-    Returns canonical SMILES string.
-    """
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        raise ValueError(f"Invalid SMILES for GPU: {smiles}")
-
-    mol = _run_pipeline(mol, steps=steps)
-    if mol is None:
-        raise ValueError(f"GPU pipeline returned None for SMILES: {smiles}")
-
-    # Final canonical SMILES (RDKit)
-    return Chem.MolToSmiles(mol, canonical=True)

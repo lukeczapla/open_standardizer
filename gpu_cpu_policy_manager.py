@@ -2,6 +2,7 @@ import time
 from collections import deque
 from rdkit import Chem
 
+from .gpu_ops import GPU_OPS
 from .cpu_ops import cpu_execute
 from .gpu_exceptions import GPUNotAvailable, GPUStepFailed
 from cluster_env import detect_cluster_environment, get_policy_overrides
@@ -39,8 +40,8 @@ class Policy:
         self.cpu_only_ops: set = cpu_only_ops or set()
 
         # GPU and CPU handlers
-        self.gpu_ops: dict[str, callable] = {}         # op_name -> gpu_fn(smiles, pipeline)
-        self.cpu_ops = cpu_execute                     # CPU fallback shim
+        self.gpu_ops = dict(GPU_OPS)
+        self.cpu_ops = cpu_execute                    # CPU fallback shim
 
         # profiler
         self.profiler = GPUCPUProfiler(self)

@@ -1,6 +1,9 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <stdexcept>
+#include <string>
+
 #include <RDGeneral/Exceptions.h>
 #include <GraphMol/ROMol.h>
 #include <GraphMol/SmilesParse/SmilesParse.h>
@@ -15,6 +18,12 @@ static std::unique_ptr<RDKit::ROMol> mol_from_smiles(const std::string &s) {
     RDKit::ROMol *mol = RDKit::SmilesToMol(s);
     if (!mol) throw std::runtime_error("Invalid SMILES: " + s);
     return std::unique_ptr<RDKit::ROMol>(mol);
+}
+
+static std::unique_ptr<ROMol> mol_from_smiles(const std::string &s) {
+    RDKit::ROMol *mol = RDKit::SmilesToMol(s);
+    if (!mol) throw std::runtime_error("Invalid SMILES: " + s);
+    return std::unique_ptr<ROMol>(mol);
 }
 
 // Helper: RDKit Mol → SMILES
@@ -37,7 +46,7 @@ static RDKit::ROMol gpu_apply_kernel(
     }
 }
 
-PYBIND11_MODULE(rdkit_standardizer_gpu, m) {
+PYBIND11_MODULE(standardize_gpu, m) {
     m.doc() = "GPU accelerated RDKit standardizer kernels (pybind11 interface)";
 
     // --- Stereo ---
@@ -131,4 +140,14 @@ PYBIND11_MODULE(rdkit_standardizer_gpu, m) {
                                             "remove_explicit_h");
         return mol_to_smiles(out);
     });
+
+    m.def("gpu_tautomerize", [](const std::string &smiles) {
+        auto mol = mol_from_smiles(smiles);
+        RDKit::ROMol out = gpu_apply_kernel(
+            *mol,
+            gpu_kernel_tautomerizer,
+            "tautomerizer"
+        );
+        return mol_to_smiles(out);
+    })
 }

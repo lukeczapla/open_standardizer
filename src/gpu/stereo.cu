@@ -3,27 +3,12 @@
 #include <stdint.h>
 #include <vector>
 
-#include "stereo_kernels.hpp"
+#include "gpu_structs.hpp"
 
 // ============================================================
 // GPU DATA STRUCTURE
 // ============================================================
 
-// Minimal representation of atom for stereochemical ops.
-// (Bond directions and CIP are CPU → GPU precomputed flags)
-struct GAtom {
-    uint8_t atomicNum;
-    uint8_t chiralFlag;   // 0=none, 1=R, 2=S, 3=unspecified (to be fixed)
-    int8_t  hCount;
-};
-
-// Per-bond directional/stereo flags
-struct GBond {
-    uint8_t order;
-    uint8_t stereo;   // 0 none, 1=UP, 2=DOWN, 3=E, 4=Z
-    int idxA;
-    int idxB;
-};
 
 // Output fixed stereo flags
 struct StereoFixResult {

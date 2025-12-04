@@ -12,3 +12,4 @@ RDKit::ROMol gpu_kernel_clear_isotopes(const RDKit::ROMol &mol);
 RDKit::ROMol gpu_kernel_clear_stereo(const RDKit::ROMol &mol);
 RDKit::ROMol gpu_kernel_keep_largest_fragment(const RDKit::ROMol &mol);
 RDKit::ROMol gpu_kernel_remove_explicit_h(const RDKit::ROMol &mol);
+RDKit::ROMol gpu_kernel_tautomerizer(const RDKit::ROMol &mol);
