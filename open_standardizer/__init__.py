@@ -1,4 +1,4 @@
-from .standardize import Standardizer, standardize, standardize_smiles
+from .open_standardizer.standardize import Standardizer, standardize, standardize_smiles
 from .gpu_cpu_policy_manager import GPU_CPU_MANAGER
 from . import gpu_ops
 
@@ -9,5 +9,7 @@ __all__ = [
     "Standardizer",
     "standardize",
     "standardize_smiles",
+    "standardize_mol",
+    "DEFAULT_OPS",    
     "GPU_CPU_MANAGER",
 ]

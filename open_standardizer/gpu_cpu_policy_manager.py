@@ -5,7 +5,7 @@ from rdkit import Chem
 from .gpu_ops import GPU_OPS
 from .cpu_ops import cpu_execute
 from .gpu_exceptions import GPUNotAvailable, GPUStepFailed
-from cluster_env import detect_cluster_environment, get_policy_overrides
+from open_standardizer.cluster_env import detect_cluster_environment, get_policy_overrides
 from .gpu_cpu_profiler import GPUCPUProfiler
 
 

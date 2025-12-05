@@ -7,6 +7,7 @@ from rdkit.Chem import rdmolops
 from rdkit.Chem.rdchem import StereoGroupType, BondStereo
 
 from .enhanced_smiles import ChemAxonMeta
+from .cx_bridge import mol_to_cxsmiles
 
 
 # -------------------------------------------------------------
@@ -241,3 +242,26 @@ def export_enhanced_smiles_from_mol(
     if not block:
         return core
     return f"{core} {{{block}}}"
+
+def export_enhanced_plus_cx(
+    mol: Chem.Mol,
+    existing_meta: Optional[ChemAxonMeta] = None,
+    index_base: int = 0,
+    mode: str = "append",
+) -> str:
+    """
+    Return a combined string:
+
+        RDKit_CXSMILES {A...;B...;a:...}
+
+    Useful if you want to keep RDKit’s pipe features AND your curly
+    stereo snapshot in one place.
+    """
+    cx = mol_to_cxsmiles(mol)
+    block = export_curly_block_from_mol(
+        mol, existing_meta=existing_meta, index_base=index_base, mode=mode
+    )
+    if not block:
+        return cx
+    # standard: one space before '{'
+    return f"{cx} {{{block}}}"

@@ -1,21 +1,21 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 CLI tool to compare ChemAxon-style enhanced SMILES stereo annotations
-(A/B assignments in {...}) against RDKit CIP / E,Z assignment
-after parsing.
+(A/B assignments in {...}, plus CX-like @:/@@: and c:/t:/u: tokens)
+against RDKit CIP / E,Z / chiral-center assignment after parsing.
 
 Typical input format (CSV):
 
     id,smiles
-    123,"C[C@H](O)CC{A2=s;B1,3=e}"
-    124,"CC/C=C\Cl{B1,2=e}"
-    125,CCO{A0=r}
+    123,"C[C@H](O)CC {A2=s;B1,3=e}"
+    124,"CC/C=C\\Cl {B1,2=e}"
+    125,"CCO {A0=r}"
 
-Or just:
+or just:
 
     smiles
-    "C[C@H](O)CC{A2=s}"
-    "CC/C=C\Cl{B1,2=e}"
+    "C[C@H](O)CC {A2=s}"
+    "CC/C=C\\Cl {B1,2=e}"
 
 Usage:
 
@@ -30,8 +30,6 @@ import csv
 import sys
 from typing import Iterable, Tuple, Optional
 
-# Adjust this import to match your layout:
-# if testing/ is a package under open_standardizer, this is fine:
 from open_standardizer.stereo_validation import (
     validate_cip_assignments_on_smiles,
     StereoValidationResult,
@@ -75,49 +73,111 @@ def _iter_rows(path: Optional[str]) -> Iterable[Tuple[str, str]]:
 def _print_result(rec_id: str, smiles: str, result: StereoValidationResult) -> None:
     """
     Human-readable report for a single record.
+
+    NOTE:
+      - PASS/FAIL is still based only on CIP (A/B vs RDKit R/S and E/Z)
+      - Local parity (@:/@@:) and ring c:/t:/u: are *reported* but don't
+        affect the overall PASS/FAIL status.
     """
     status = "PASS" if result.ok() else "FAIL"
-
     print(f"{rec_id}\t{status}\t{smiles}")
 
-    # Atom-level details
+    # --------------------------------------------------
+    # Atom-level CIP
+    # --------------------------------------------------
     for comp in result.atom_matches:
         print(f"  ATOM {comp.atom_index}: {comp.assignment} == {comp.cip_code}  [match]")
+
     for comp in result.atom_mismatches:
         print(f"  ATOM {comp.atom_index}: {comp.assignment} != {comp.cip_code}  [mismatch]")
+
     for comp in result.atom_missing_cip:
         print(f"  ATOM {comp.atom_index}: {comp.assignment}  [missing RDKit CIP]")
-    for comp in result.atom_non_cip_assignments:
-        print(f"  ATOM {comp.atom_index}: {comp.assignment}  [non-CIP code / ignored]")
 
-    # Bond-level details
+    for comp in result.atom_non_cip_assignments:
+        print(f"  ATOM {comp.atom_index}: {comp.assignment}  [{comp.status}]")
+
+    # --------------------------------------------------
+    # Bond-level E/Z CIP (B<i,j>=e/z)
+    # --------------------------------------------------
     for comp in result.bond_matches:
         print(
             f"  BOND ({comp.atom_index1},{comp.atom_index2}): "
             f"{comp.assignment} == {comp.cip_code}  [match]"
         )
+
     for comp in result.bond_mismatches:
         print(
             f"  BOND ({comp.atom_index1},{comp.atom_index2}): "
             f"{comp.assignment} != {comp.cip_code}  [mismatch]"
         )
+
     for comp in result.bond_missing_cip:
         print(
             f"  BOND ({comp.atom_index1},{comp.atom_index2}): "
             f"{comp.assignment}  [missing RDKit E/Z]"
         )
+
     for comp in result.bond_unknown_assignments:
         print(
             f"  BOND ({comp.atom_index1},{comp.atom_index2}): "
             f"{comp.assignment}  [{comp.status}]"
         )
 
+    # --------------------------------------------------
+    # NEW: local parity tokens @: / @@:
+    # --------------------------------------------------
+    if result.parity_atoms:
+        print("  LOCAL PARITY (@:/@@:)")
+        for comp in result.parity_atoms:
+            rd_flag = "chiral" if comp.rd_has_chiral_center else "achiral"
+            print(
+                f"    ATOM {comp.atom_index}: {comp.parity} "
+                f"(RDKit: {rd_flag}) [{comp.status}]"
+            )
+
+    # --------------------------------------------------
+    # NEW: ring cis/trans c:/t:/u:
+    # --------------------------------------------------
+    has_ring = (
+        result.ring_stereo_matches
+        or result.ring_stereo_mismatches
+        or result.ring_stereo_missing
+        or result.ring_stereo_unknown
+    )
+    if has_ring:
+        print("  RING STEREO (c:/t:/u:)")
+        for comp in result.ring_stereo_matches:
+            rd = comp.rd_stereo if comp.rd_stereo is not None else "None"
+            print(
+                f"    BOND {comp.bond_index}: {comp.assignment} == {rd}  [{comp.status}]"
+            )
+
+        for comp in result.ring_stereo_mismatches:
+            rd = comp.rd_stereo if comp.rd_stereo is not None else "None"
+            print(
+                f"    BOND {comp.bond_index}: {comp.assignment} != {rd}  [{comp.status}]"
+            )
+
+        for comp in result.ring_stereo_missing:
+            print(
+                f"    BOND {comp.bond_index}: {comp.assignment}  "
+                f"[missing RDKit ring cis/trans]"
+            )
+
+        for comp in result.ring_stereo_unknown:
+            rd = comp.rd_stereo if comp.rd_stereo is not None else "None"
+            print(
+                f"    BOND {comp.bond_index}: {comp.assignment} (RDKit: {rd}) "
+                f"[{comp.status}]"
+            )
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Validate ChemAxon-style enhanced SMILES stereo annotations "
-            "against RDKit CIP/E,Z assignments."
+            "against RDKit CIP/E,Z and selected CX-like tokens (@:,@@:,c:,t:,u:)."
         )
     )
     parser.add_argument(
@@ -128,14 +188,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--only-failures",
         action="store_true",
-        help="Only print records where at least one stereo mismatch occurs.",
+        help="Only print records where at least one CIP stereo mismatch occurs.",
     )
     parser.add_argument(
         "--index-base",
         type=int,
         default=0,
         help=(
-            "Indexing base for A/B assignments. "
+            "Indexing base for A/B assignments and CX tokens. "
             "0 = ChemAxon 0-based (default), 1 = 1-based."
         ),
     )

@@ -1,10 +1,8 @@
 [build-system]
 requires = [
   "scikit-build-core>=0.9",
-  "setuptools>=68",
+  "setuptools>=69",
   "wheel",
-  "cmake>=3.24",
-  "ninja",
   "pybind11>=2.10",
 ]
 build-backend = "scikit_build_core.build"
@@ -23,7 +21,7 @@ authors = [
 
 # If you’re installing RDKit from PyPI:
 dependencies = [
-  "rdkit",          # or pin a version here if you want
+  # Requires RDKit (C++ and Python) to be installed on the system from externally or github
 ]
 
 [project.optional-dependencies]
