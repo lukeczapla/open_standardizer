@@ -210,6 +210,6 @@ GPU_CPU_MANAGER = Policy(
     min_atoms_gpu=2,
     allow_large_molecules=True,
     gpu_required_ops={"clear_stereo", "aromatize", "charge_normalize",
-                      "bond_order_infer", "mesomerize"},
-    cpu_only_ops={"remove_largest_fragment", "remove_explicit_h"},
+                      "bond_order", "mesomerize"},
+    cpu_only_ops={},
 )

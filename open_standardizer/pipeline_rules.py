@@ -9,12 +9,12 @@ class CapabilityMatrix:
     """
     gpu_ops: Dict[str, bool] = field(default_factory=lambda: {
         "clear_stereo": True,
-        "remove_fragments": False,  # CPU only
+        "remove_fragments": True,
         "remove_explicit_h": True,
         "clear_isotopes": True,
         "neutralize": True,
         "mesomerize": True,
-        "tautomerize": False,  # RDKit only
+        "tautomerize": True,
         "aromatize": True,
         "charge_norm": True,
         "bond_order": True,
@@ -27,7 +27,7 @@ class PipelineRules:
     Defines pipeline ordering and GPU/CPU assignment policy.
     """
     order: List[str] = field(default_factory=lambda: [
-        "remove_fragments",     # must run early (CPU)
+        "remove_fragments",
         "clear_stereo",
         "remove_explicit_h",
         "clear_isotopes",
@@ -36,7 +36,7 @@ class PipelineRules:
         "bond_order",
         "mesomerize",
         "aromatize",
-        "tautomerize",          # RDKit only
+        "tautomerize",
     ])
 
     capability: CapabilityMatrix = field(default_factory=CapabilityMatrix)

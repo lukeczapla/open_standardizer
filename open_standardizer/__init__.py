@@ -1,4 +1,4 @@
-from .open_standardizer.standardize import Standardizer, standardize, standardize_smiles
+from .standardize import Standardizer, standardize, standardize_smiles
 from .gpu_cpu_policy_manager import GPU_CPU_MANAGER
 from . import gpu_ops
 

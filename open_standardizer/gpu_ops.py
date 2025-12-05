@@ -3,7 +3,7 @@
 from typing import Callable, List, Dict
 from .gpu_cpu_policy_manager import Policy
 from .gpu_cpu_policy_manager import try_gpu_standardize  # if you have this helper
-from .gpu.standardize_gpu_old import gpu_standardize
+from .gpu.standardize_gpu import gpu_standardize
 
 GPU_OPS: Dict[str, Callable[[str, List[str]], str]] = {}
 
@@ -16,15 +16,16 @@ def _single_step(step_name: str):
 
 GPU_OPS.update(
     {
-        "clear_isotopes":         _single_step("clear_isotopes"),   # if you register it
-        "clear_stereo":           _single_step("stereo"),
-        "remove_largest_fragment": _single_step("keep_largest_fragment"),
+        "clear_isotopes":              _single_step("clear_isotopes"),   # if you register it
+        "clear_stereo":                _single_step("stereo"),
+        "bond_order":                  _single_step("bond_order"),
+        "charge":                      _single_step["charge_normalize"],
+        "remove_largest_fragment":     _single_step("keep_largest_fragment"),
         "remove_fragment_keeplargest": _single_step("keep_largest_fragment"),
-        "remove_explicit_h":      _single_step("remove_explicit_h"),
-        "aromatize":              _single_step("aromaticity"),
-        "mesomerize":             _single_step("mesomerize"),
-        "tautomerize":            _single_step("tautomerize"),
-        # plus any other ops you want GPU-backed
+        "remove_explicit_h":           _single_step("remove_explicit_h"),
+        "aromatize":                   _single_step("aromaticity"),
+        "mesomerize":                  _single_step("mesomerize"),
+        "tautomerize":                 _single_step("tautomerize"),
     }
 )
 
@@ -58,7 +59,7 @@ def register_gpu_ops(policy: Policy) -> None:
         "charge_normalize": _make_single_step_gpu("charge"),
 
         # Bond-order inference
-        "bond_order_infer": _make_single_step_gpu("bond_order"),
+        "bond_order": _make_single_step_gpu("bond_order"),
 
         # Aromaticity perception
         "aromatize": _make_single_step_gpu("aromaticity"),
@@ -76,7 +77,7 @@ def register_gpu_ops(policy: Policy) -> None:
             "aromatize",
             "mesomerize",
             "charge_normalize",
-            "bond_order_infer",
+            "bond_order",
             "tautomerize"
         })
 
